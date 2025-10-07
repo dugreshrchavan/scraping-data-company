@@ -3,8 +3,11 @@ import requests
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor
 import os
+
+# ---------------- Flask Setup ----------------
 app = Flask(__name__)
 
+# ---------------- Company URLs ----------------
 COMPANIES = {
     "Narola Infotech": "https://narolainfotech.keka.com/careers",
     "Infosys": "https://www.infosys.com/careers",
@@ -13,7 +16,7 @@ COMPANIES = {
     "Tata Elxsi": "https://www.tataelxsi.com/careers"
 }
 
-
+# ---------------- Scraper Functions ----------------
 
 def scrape_narola(keyword):
     url = COMPANIES["Narola Infotech"]
@@ -21,8 +24,7 @@ def scrape_narola(keyword):
     try:
         r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
         soup = BeautifulSoup(r.text, "html.parser")
-        job_cards = soup.find_all("div", class_="career-title")  # job container
-
+        job_cards = soup.find_all("div", class_="career-title")
         for card in job_cards:
             title = card.get_text(strip=True)
             if keyword.lower() in title.lower():
@@ -36,7 +38,7 @@ def scrape_narola(keyword):
                     "Apply Link": link
                 })
     except Exception as e:
-        print(f"Narola Error: {e}")
+        print(f"[Narola Error] {e}")
     return jobs
 
 def scrape_infosys(keyword):
@@ -45,17 +47,14 @@ def scrape_infosys(keyword):
     try:
         r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
         soup = BeautifulSoup(r.text, "html.parser")
-        job_blocks = soup.find_all("div", class_="job-desc")  # example class
-
+        job_blocks = soup.find_all("div", class_="job-desc")
         for jb in job_blocks:
             title_tag = jb.find("h3")
             location_tag = jb.find("span", class_="location")
             link_tag = jb.find("a")
-
             title = title_tag.get_text(strip=True) if title_tag else "N/A"
             location = location_tag.get_text(strip=True) if location_tag else "Not specified"
             link = link_tag["href"] if link_tag else url
-
             if keyword.lower() in title.lower():
                 jobs.append({
                     "Job Title": title,
@@ -65,7 +64,7 @@ def scrape_infosys(keyword):
                     "Apply Link": link
                 })
     except Exception as e:
-        print(f"Infosys Error: {e}")
+        print(f"[Infosys Error] {e}")
     return jobs
 
 def scrape_wipro(keyword):
@@ -74,8 +73,7 @@ def scrape_wipro(keyword):
     try:
         r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
         soup = BeautifulSoup(r.text, "html.parser")
-        job_blocks = soup.find_all("div", class_="opening")  # example container
-
+        job_blocks = soup.find_all("div", class_="opening")
         for jb in job_blocks:
             title = jb.get_text(strip=True)
             if keyword.lower() in title.lower():
@@ -89,7 +87,7 @@ def scrape_wipro(keyword):
                     "Apply Link": link
                 })
     except Exception as e:
-        print(f"Wipro Error: {e}")
+        print(f"[Wipro Error] {e}")
     return jobs
 
 def scrape_capgemini(keyword):
@@ -99,7 +97,6 @@ def scrape_capgemini(keyword):
         r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
         soup = BeautifulSoup(r.text, "html.parser")
         job_links = soup.find_all("a", href=True)
-
         for a in job_links:
             title = a.get_text(strip=True)
             link = a["href"]
@@ -114,7 +111,7 @@ def scrape_capgemini(keyword):
                     "Apply Link": link
                 })
     except Exception as e:
-        print(f"Capgemini Error: {e}")
+        print(f"[Capgemini Error] {e}")
     return jobs
 
 def scrape_tataelxsi(keyword):
@@ -124,7 +121,6 @@ def scrape_tataelxsi(keyword):
         r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
         soup = BeautifulSoup(r.text, "html.parser")
         job_links = soup.find_all("a", href=True)
-
         for a in job_links:
             title = a.get_text(strip=True)
             link = a["href"]
@@ -139,10 +135,10 @@ def scrape_tataelxsi(keyword):
                     "Apply Link": link
                 })
     except Exception as e:
-        print(f"Tata Elxsi Error: {e}")
+        print(f"[Tata Elxsi Error] {e}")
     return jobs
 
-# Map company to scraper function
+# ---------------- Mapping ----------------
 SCRAPER_MAP = {
     "Narola Infotech": scrape_narola,
     "Infosys": scrape_infosys,
@@ -151,7 +147,11 @@ SCRAPER_MAP = {
     "Tata Elxsi": scrape_tataelxsi
 }
 
-# ---------------- Flask Route ----------------
+# ---------------- Flask Routes ----------------
+
+@app.route('/')
+def home():
+    return "✅ Job Scraper API is running. Use /jobs?keyword=Python"
 
 @app.route("/jobs", methods=["GET"])
 def get_jobs():
@@ -168,7 +168,7 @@ def get_jobs():
             try:
                 all_jobs.extend(f.result())
             except Exception as e:
-                print(f"Thread Error: {e}")
+                print(f"[Thread Error] {e}")
 
     # Optional: save to file
     with open("recruitment.txt", "w", encoding="utf-8") as f:
@@ -179,8 +179,7 @@ def get_jobs():
 
     return jsonify(all_jobs)
 
-
+# ---------------- Run Flask ----------------
 if __name__ == '__main__':
-    # Use Render's assigned PORT or default to 5000 locally
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
